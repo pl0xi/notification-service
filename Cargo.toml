@@ -5,3 +5,6 @@ authors = ["Benjamin Sommervoll <puixdk@gmail.com>"]
 edition = "2021"
 
 [dependencies]
+axum = "0.7.7"
+tokio = { version = "1.41.0", features = ["macros","rt-multi-thread"] }
+tower = "0.5.0"

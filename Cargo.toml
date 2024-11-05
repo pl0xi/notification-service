@@ -8,3 +8,5 @@ edition = "2021"
 axum = "0.7.7"
 tokio = { version = "1.41.0", features = ["macros","rt-multi-thread"] }
 tower = "0.5.0"
+thiserror = "1.0.68"
+dotenv = "0.15.0"

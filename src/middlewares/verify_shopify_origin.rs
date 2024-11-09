@@ -9,7 +9,7 @@ use thiserror::Error;
 
 use std::env;
 
-#[derive(Error, Debug)]
+#[derive(Error, Debug, PartialEq)]
 pub enum VerifyHeadersError {
     #[error("X-Shopify-Topic header is missing")]
     MissingTopic,
@@ -39,7 +39,7 @@ pub enum VerifyHeadersError {
     IncorrectApiVersion,
 }
 
-#[derive(Error, Debug)]
+#[derive(Error, Debug, PartialEq)]
 pub enum VerifyHmacSha256Error {
     #[error("HMAC-SHA256 length is incorrect")]
     IncorrectLength,
@@ -52,6 +52,8 @@ pub async fn verify_shopify_origin(req: Request, next: Next) -> Result<Response,
     if let Err(e) = verify_headers(&req.headers()) {
         return Err((StatusCode::BAD_REQUEST, e.to_string()));
     }
+
+    // TODO: Verify it is not duplicate event
 
     Ok(next.run(req).await)
 }
@@ -95,5 +97,41 @@ fn verify_hmac_sha256(hmac_sha256: &[u8]) -> Result<(), VerifyHmacSha256Error> {
         Ok(())
     } else {
         Err(VerifyHmacSha256Error::InvalidHmacSha256)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // Test for verify_hmac_sha256
+    const HMAC_VALUE: &str = "a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2";
+
+    fn setup_verify_hmac_sha256() {
+        env::set_var("shopify_webhook_secret", HMAC_VALUE);
+    }
+
+    #[test]
+    fn test_verify_hmac_sha256_correct_hmac_sha256() {
+        setup_verify_hmac_sha256();
+        let result = verify_hmac_sha256(HMAC_VALUE.as_bytes()).unwrap();
+        let expected = ();
+        assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn test_verify_hmac_sha256_incorrect_length_hmac_sha256() {
+        setup_verify_hmac_sha256();
+        let result = verify_hmac_sha256(b"000000000000000000000000000000000000000000000000000000000000001");
+        assert!(result.is_err());
+        assert_eq!(result.unwrap_err(), VerifyHmacSha256Error::IncorrectLength);
+    }
+
+    #[test]
+    fn test_verify_hmac_sha256_invalid_hmac_sha256() {
+        setup_verify_hmac_sha256();
+        let result = verify_hmac_sha256(b"0000000000000000000000000000000000000000000000000000000000000002");
+        assert!(result.is_err());
+        assert_eq!(result.unwrap_err(), VerifyHmacSha256Error::InvalidHmacSha256);
     }
 }

@@ -1,1 +1,1 @@
-# mail-service
+# Notification Service for e-commerce platforms

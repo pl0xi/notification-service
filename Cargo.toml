@@ -1,5 +1,5 @@
 [package]
-name = "email-service"
+name = "notification-service"
 version = "0.1.0"
 authors = ["Benjamin Sommervoll <puixdk@gmail.com>"]
 edition = "2021"

@@ -1,13 +1,13 @@
+use crate::db::*;
 use axum::{
-    extract::Request,
+    extract::{Request, State},
     http::{HeaderMap, StatusCode},
     middleware::Next,
     response::Response,
 };
-
-use thiserror::Error;
-
+use client::DbClient;
 use std::env;
+use thiserror::Error;
 
 #[derive(Error, Debug, PartialEq)]
 pub enum VerifyHeadersError {
@@ -48,11 +48,12 @@ pub enum VerifyHmacSha256Error {
     InvalidHmacSha256,
 }
 
-pub async fn verify_shopify_origin(req: Request, next: Next) -> Result<Response, (StatusCode, String)> {
+pub async fn verify_shopify_origin(db_client: State<DbClient>, req: Request, next: Next) -> Result<Response, (StatusCode, String)> {
     if let Err(e) = verify_headers(&req.headers()) {
         return Err((StatusCode::BAD_REQUEST, e.to_string()));
     }
 
+    let client = db_client.get_client().await.unwrap();
     // TODO: Verify it is not duplicate event
 
     Ok(next.run(req).await)

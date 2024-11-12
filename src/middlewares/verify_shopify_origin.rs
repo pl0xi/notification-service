@@ -7,7 +7,7 @@ use axum::{
 };
 use client::DbClient;
 use deadpool_postgres::Object;
-use queries::events::get::get_event;
+use queries::events::{create_event, get_event};
 use std::env;
 use thiserror::Error;
 
@@ -65,10 +65,12 @@ pub async fn verify_shopify_origin(db_client: State<DbClient>, req: Request, nex
     let event_id = req.headers().get("X-Shopify-Event-Id").unwrap().to_str().unwrap();
     if let Err(e) = check_duplicate_event(&client, &event_id).await {
         // Event has to return 200 OK, else Shopify will retry with duplicate event
-        print!("Test");
-        print!("sd");
         return Err((StatusCode::OK, e.to_string()));
     }
+
+    if let Err(e) = create_event(&client, &event_id).await {
+        return Err((StatusCode::INTERNAL_SERVER_ERROR, e.to_string()));
+    };
 
     Ok(next.run(req).await)
 }

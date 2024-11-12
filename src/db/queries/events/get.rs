@@ -9,7 +9,7 @@ pub enum GetEventError {
 }
 
 pub async fn get_event(client: &Client, event_id: &str) -> Result<Row, GetEventError> {
-    let query = "SELECT * FROM events WHERE id = $1";
+    let query = "SELECT * FROM events WHERE event_id = $1";
     let row = client.query_one(query, &[&event_id]).await.map_err(|_| GetEventError::FailedToGetEvent)?;
 
     Ok(row)

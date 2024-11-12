@@ -6,6 +6,8 @@ use axum::{
     response::Response,
 };
 use client::DbClient;
+use deadpool_postgres::Object;
+use queries::events::{create_event, get_event};
 use std::env;
 use thiserror::Error;
 
@@ -48,15 +50,39 @@ pub enum VerifyHmacSha256Error {
     InvalidHmacSha256,
 }
 
+#[derive(Error, Debug, PartialEq)]
+pub enum CheckDuplicateEventError {
+    #[error("Event is duplicate")]
+    DuplicateEvent,
+}
+
 pub async fn verify_shopify_origin(db_client: State<DbClient>, req: Request, next: Next) -> Result<Response, (StatusCode, String)> {
     if let Err(e) = verify_headers(&req.headers()) {
         return Err((StatusCode::BAD_REQUEST, e.to_string()));
     }
 
     let client = db_client.get_client().await.unwrap();
-    // TODO: Verify it is not duplicate event
+    let event_id = req.headers().get("X-Shopify-Event-Id").unwrap().to_str().unwrap();
+    if let Err(e) = check_duplicate_event(&client, &event_id).await {
+        // Event has to return 200 OK, else Shopify will retry with duplicate event
+        return Err((StatusCode::OK, e.to_string()));
+    }
+
+    if let Err(e) = create_event(&client, &event_id).await {
+        return Err((StatusCode::INTERNAL_SERVER_ERROR, e.to_string()));
+    };
 
     Ok(next.run(req).await)
+}
+
+// Shopify in rare cases can send duplicate events, so we need to check if the event has already been processed
+async fn check_duplicate_event(client: &Object, event_id: &str) -> Result<(), CheckDuplicateEventError> {
+    let get_event = get_event(&client, event_id).await;
+    if get_event.is_ok() {
+        return Err(CheckDuplicateEventError::DuplicateEvent);
+    }
+
+    Ok(())
 }
 
 fn verify_headers(headers: &HeaderMap) -> Result<(), VerifyHeadersError> {

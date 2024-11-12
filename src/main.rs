@@ -16,7 +16,7 @@ async fn main() {
 
     let app = Router::new()
         .route("/api/order/create", post(order_created))
-        .layer(middleware::from_fn_with_state(db_client, verify_shopify_origin));
+        .route_layer(middleware::from_fn_with_state(db_client, verify_shopify_origin));
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
     axum::serve(listener, app).await.unwrap();

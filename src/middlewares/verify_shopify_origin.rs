@@ -39,6 +39,12 @@ pub enum VerifyHeadersError {
 
     #[error("X-Shopify-Api-Version header is incorrect")]
     IncorrectApiVersion,
+
+    #[error("Content-Type header is missing")]
+    MissingContentType,
+
+    #[error("Content-Type header is incorrect")]
+    IncorrectContentType,
 }
 
 #[derive(Error, Debug, PartialEq)]
@@ -89,6 +95,11 @@ fn verify_headers(headers: &HeaderMap) -> Result<(), VerifyHeadersError> {
     headers.get("X-Shopify-Topic").ok_or(VerifyHeadersError::MissingTopic)?;
     headers.get("X-Shopify-Webhook-Id").ok_or(VerifyHeadersError::MissingWebhookId)?;
     headers.get("X-Shopify-Event-Id").ok_or(VerifyHeadersError::MissingEventId)?;
+
+    let content_type = headers.get("Content-Type").ok_or(VerifyHeadersError::MissingContentType)?;
+    if content_type.to_str().unwrap() != "application/json" {
+        return Err(VerifyHeadersError::IncorrectContentType);
+    }
 
     let shop_domain = headers.get("X-Shopify-Shop-Domain").ok_or(VerifyHeadersError::MissingShopDomain)?;
     if shop_domain.to_str().unwrap() != env::var("shopify_shop_url").unwrap() {

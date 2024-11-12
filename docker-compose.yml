@@ -1,11 +1,15 @@
 services:
   notification-service:
     container_name: notification-service
+    volumes:
+      - .:/usr/src/app
     build:
       context: ./
       dockerfile: Dockerfile.dev
     ports:
       - 3000:3000
+    depends_on:
+      - db
 
   db:
     image: postgres:17.0-alpine

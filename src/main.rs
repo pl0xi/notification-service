@@ -1,21 +1,34 @@
 mod db;
+mod email;
 mod middlewares;
 mod routes;
 
-use axum::{middleware, routing::post, Router};
+use axum::{middleware, routing::post, Extension, Router};
 use db::client::DbClient;
 use dotenv::dotenv;
+use email::client::EmailClient;
 use middlewares::verify_shopify_origin;
 use routes::webhooks::handlers::order_created;
+use std::env;
 
 #[tokio::main]
 async fn main() {
     dotenv().ok();
 
+    // Create a database client
     let db_client = DbClient::new();
 
+    // Create an email client
+    let email_client = EmailClient::new(
+        env::var("smtp_username").unwrap(),
+        env::var("smtp_password").unwrap(),
+        env::var("smtp_host").unwrap().as_str(),
+    );
+
+    // Create the app
     let app = Router::new()
         .route("/api/order/create", post(order_created))
+        .layer(Extension(email_client))
         .route_layer(middleware::from_fn_with_state(db_client, verify_shopify_origin));
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();

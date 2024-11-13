@@ -1,5 +1,7 @@
-use axum::http::StatusCode;
+use crate::email::client::EmailClient;
+use axum::{extract::Extension, http::StatusCode};
 
-pub async fn order_created() -> StatusCode {
+#[allow(unused)]
+pub async fn order_created(Extension(state): Extension<EmailClient>) -> StatusCode {
     StatusCode::OK
 }

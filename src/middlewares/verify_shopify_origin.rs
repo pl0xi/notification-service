@@ -161,6 +161,7 @@ mod tests {
         headers.insert("X-Shopify-Shop-Domain", SHOP_DOMAIN.parse().unwrap());
         headers.insert("X-Shopify-Hmac-Sha256", HMAC_VALUE.parse().unwrap());
         headers.insert("X-Shopify-Api-Version", API_VERSION.parse().unwrap());
+        headers.insert("Content-Type", "application/json".parse().unwrap());
         let result = verify_headers(&headers).unwrap();
         let expected = ();
         assert_eq!(result, expected);
@@ -175,6 +176,7 @@ mod tests {
         headers.insert("X-Shopify-Shop-Domain", SHOP_DOMAIN.parse().unwrap());
         headers.insert("X-Shopify-Hmac-Sha256", HMAC_VALUE.parse().unwrap());
         headers.insert("X-Shopify-Api-Version", API_VERSION.parse().unwrap());
+        headers.insert("Content-Type", "application/json".parse().unwrap());
         let result = verify_headers(&headers);
         assert!(result.is_err());
         assert_eq!(result.unwrap_err(), VerifyHeadersError::MissingTopic);
@@ -189,6 +191,7 @@ mod tests {
         headers.insert("X-Shopify-Shop-Domain", SHOP_DOMAIN.parse().unwrap());
         headers.insert("X-Shopify-Hmac-Sha256", HMAC_VALUE.parse().unwrap());
         headers.insert("X-Shopify-Api-Version", API_VERSION.parse().unwrap());
+        headers.insert("Content-Type", "application/json".parse().unwrap());
         let result = verify_headers(&headers);
         assert!(result.is_err());
         assert_eq!(result.unwrap_err(), VerifyHeadersError::MissingWebhookId);
@@ -203,6 +206,7 @@ mod tests {
         headers.insert("X-Shopify-Shop-Domain", SHOP_DOMAIN.parse().unwrap());
         headers.insert("X-Shopify-Hmac-Sha256", HMAC_VALUE.parse().unwrap());
         headers.insert("X-Shopify-Api-Version", API_VERSION.parse().unwrap());
+        headers.insert("Content-Type", "application/json".parse().unwrap());
         let result = verify_headers(&headers);
         assert!(result.is_err());
         assert_eq!(result.unwrap_err(), VerifyHeadersError::MissingEventId);
@@ -218,6 +222,7 @@ mod tests {
         headers.insert("X-Shopify-Shop-Domain", "wrong-shop.myshopify.com".parse().unwrap());
         headers.insert("X-Shopify-Hmac-Sha256", HMAC_VALUE.parse().unwrap());
         headers.insert("X-Shopify-Api-Version", API_VERSION.parse().unwrap());
+        headers.insert("Content-Type", "application/json".parse().unwrap());
         let result = verify_headers(&headers);
         assert!(result.is_err());
         assert_eq!(result.unwrap_err(), VerifyHeadersError::IncorrectShopDomain);
@@ -233,6 +238,7 @@ mod tests {
         headers.insert("X-Shopify-Shop-Domain", SHOP_DOMAIN.parse().unwrap());
         headers.insert("X-Shopify-Hmac-Sha256", "invalid_hmac_value".parse().unwrap());
         headers.insert("X-Shopify-Api-Version", API_VERSION.parse().unwrap());
+        headers.insert("Content-Type", "application/json".parse().unwrap());
         let result = verify_headers(&headers);
         assert!(result.is_err());
         assert_eq!(result.unwrap_err(), VerifyHeadersError::IncorrectHmacSha256);
@@ -248,9 +254,26 @@ mod tests {
         headers.insert("X-Shopify-Shop-Domain", SHOP_DOMAIN.parse().unwrap());
         headers.insert("X-Shopify-Hmac-Sha256", HMAC_VALUE.parse().unwrap());
         headers.insert("X-Shopify-Api-Version", "2023-01".parse().unwrap());
+        headers.insert("Content-Type", "application/json".parse().unwrap());
         let result = verify_headers(&headers);
         assert!(result.is_err());
         assert_eq!(result.unwrap_err(), VerifyHeadersError::IncorrectApiVersion);
+    }
+
+    #[test]
+    fn test_verify_headers_wrong_content_type() {
+        setup_verify_headers();
+        let mut headers = HeaderMap::new();
+        headers.insert("X-Shopify-Topic", "Create Order".parse().unwrap());
+        headers.insert("X-Shopify-Webhook-Id", "81292983".parse().unwrap());
+        headers.insert("X-Shopify-Event-Id", "1234567890".parse().unwrap());
+        headers.insert("X-Shopify-Shop-Domain", SHOP_DOMAIN.parse().unwrap());
+        headers.insert("X-Shopify-Hmac-Sha256", HMAC_VALUE.parse().unwrap());
+        headers.insert("X-Shopify-Api-Version", API_VERSION.parse().unwrap());
+        headers.insert("Content-Type", "text/html".parse().unwrap());
+        let result = verify_headers(&headers);
+        assert!(result.is_err());
+        assert_eq!(result.unwrap_err(), VerifyHeadersError::IncorrectContentType);
     }
 
     // Test for verify_hmac_sha256

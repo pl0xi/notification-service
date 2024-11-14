@@ -1,13 +1,12 @@
-use crate::db::*;
+use crate::services::db::client::DbClient;
+use crate::services::db::queries::events::{create_event, get_event};
 use axum::{
     extract::{Request, State},
     http::{HeaderMap, StatusCode},
     middleware::Next,
     response::Response,
 };
-use client::DbClient;
 use deadpool_postgres::Object;
-use queries::events::{create_event, get_event};
 use std::env;
 use thiserror::Error;
 

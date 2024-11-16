@@ -8,6 +8,7 @@ pub enum GetEmailTemplateError {
     FailedToGetTemplate,
 }
 
+#[allow(unused)]
 pub async fn get_email_template_by_name(client: &Client, name: &str) -> Result<Row, GetEmailTemplateError> {
     let query = "SELECT * FROM email_templates WHERE name = $1";
     let row = client

@@ -1,5 +1,6 @@
 pub mod find_all;
 pub mod get_by_name;
+pub mod partials;
 
 pub use find_all::find_all;
 

@@ -4,6 +4,7 @@ use thiserror::Error;
 #[derive(Error, Debug)]
 pub enum SendEmailError {
     #[error("Failed to send email")]
+    #[allow(unused)]
     FailedToSendEmail,
 }
 
@@ -24,7 +25,8 @@ impl EmailClient {
         Self { mailer }
     }
 
-    pub async fn send_email(&self) -> Result<(), SendEmailError> {
+    #[allow(unused)]
+    pub fn send_email(&self) -> Result<(), SendEmailError> {
         // TODO: Implement email sending
         Err(SendEmailError::FailedToSendEmail)
     }

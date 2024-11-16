@@ -1,1 +1,2 @@
 # Notification Service for e-commerce platforms
+This service handles notifications for Shopify stores. It's built with Rust and uses a PostgreSQL database to store templates and partials. It uses Shopify's webhook API to listen for events and send notifications via email.

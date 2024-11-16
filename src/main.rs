@@ -7,7 +7,7 @@ use dotenv::dotenv;
 use handlebars::Handlebars;
 use middlewares::verify_shopify_origin;
 use routes::webhooks::handlers::order_created;
-use services::db::queries::email_template::find_all;
+use services::db::queries::email_template::{find_all, partials::find_all_partials};
 use services::{db::client::DbClient, email::client::EmailClient, template::client::TemplateClient};
 use std::env;
 use tower::ServiceBuilder;
@@ -37,6 +37,19 @@ async fn main() {
             println!("Template registered and ready: {}", name);
         } else {
             println!("Error registering template: {}", name);
+        }
+    }
+
+    // Get partials from database and persist in memory with the template client
+    let partials_templates_from_db = find_all_partials(&db_client.get_client().await.unwrap()).await.unwrap();
+    for partial in partials_templates_from_db {
+        let name: &str = partial.get("name");
+        let content: &str = partial.get("content");
+
+        if templates.register_partial(name, content).is_ok() {
+            println!("Partial template registered and ready: {}", name);
+        } else {
+            println!("Error registering partial template: {}", name);
         }
     }
 

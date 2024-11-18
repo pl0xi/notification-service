@@ -1,4 +1,6 @@
-use crate::services::{email::client::EmailClient, template::client::TemplateClient};
+use std::fmt::Debug;
+
+use crate::services::{email::client::Email, email::client::EmailClient, template::client::TemplateClient};
 use axum::{
     extract::{Extension, Json},
     http::StatusCode,
@@ -23,7 +25,20 @@ pub async fn order_created(
     Extension(template_client): Extension<TemplateClient>,
     Json(payload): Json<OrderCreatedWebhook>,
 ) -> StatusCode {
-    let template_filled = template_client.get_template_filled("order_created", payload).unwrap();
-    println!("{}", template_filled);
+    let template_filled = template_client.get_template_filled("order_created", &payload).unwrap();
+
+    let email = Email {
+        to: payload.contact.email,
+        subject: "Order Created".to_string(),
+        html_body: template_filled,
+    };
+
+    // match email_client.send_email(email) {
+    //     Ok(_) => StatusCode::OK,
+    //     Err(e) => {
+    //         println!("Error sending email: {:?}", e);
+    //         StatusCode::INTERNAL_SERVER_ERROR
+    //     }
+
     StatusCode::OK
 }

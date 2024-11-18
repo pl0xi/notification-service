@@ -20,6 +20,10 @@ INSERT INTO email_templates (name, content) VALUES (
             
             <p style="font-style: italic;">note: This is not an order confirmation</p>
         </div>
+
+        <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+            {{> signature}}
+        </div>
     </body>
     </html>'
 );
@@ -49,5 +53,5 @@ CREATE TABLE IF NOT EXISTS email_template_partials (
 
 INSERT INTO email_template_partials (name, content) VALUES (
     'signature',
-    '<p>Sincerely,<br>{{company_name}}</p>'
+    '<p>Sincerely **Shop_Name**</p>'
 );

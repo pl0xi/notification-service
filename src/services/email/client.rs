@@ -4,7 +4,6 @@ use thiserror::Error;
 #[derive(Error, Debug)]
 pub enum SendEmailError {
     #[error("Failed to send email")]
-    #[allow(unused)]
     FailedToSendEmail,
 }
 
@@ -12,6 +11,13 @@ pub enum SendEmailError {
 pub struct EmailClient {
     #[allow(unused)]
     mailer: AsyncSmtpTransport<Tokio1Executor>,
+}
+
+#[allow(unused)]
+pub struct Email {
+    pub to: String,
+    pub subject: String,
+    pub html_body: String,
 }
 
 impl EmailClient {
@@ -26,7 +32,7 @@ impl EmailClient {
     }
 
     #[allow(unused)]
-    pub fn send_email(&self) -> Result<(), SendEmailError> {
+    pub fn send_email(&self, email: Email) -> Result<(), SendEmailError> {
         // TODO: Implement email sending
         Err(SendEmailError::FailedToSendEmail)
     }

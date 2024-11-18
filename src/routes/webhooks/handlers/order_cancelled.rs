@@ -10,6 +10,7 @@ use std::fmt::Debug;
 #[derive(Deserialize, Serialize, Debug)]
 pub struct OrderCancelledWebhook {
     customer: Customer,
+    order_number: String,
 }
 
 pub async fn order_cancelled(
@@ -25,7 +26,7 @@ pub async fn order_cancelled(
             payload.customer.first_name + " " + &payload.customer.last_name,
             payload.customer.email
         ),
-        subject: format!("#{}: Your order has been cancelled", "TODO"),
+        subject: format!("#{}: Your order has been cancelled", payload.order_number),
         html_body: template_filled,
     };
 

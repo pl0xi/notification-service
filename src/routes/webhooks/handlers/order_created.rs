@@ -10,6 +10,7 @@ use std::fmt::Debug;
 #[derive(Deserialize, Serialize, Debug)]
 pub struct OrderCreatedWebhook {
     customer: Customer,
+    order_number: String,
 }
 
 pub async fn order_created(
@@ -25,7 +26,7 @@ pub async fn order_created(
             payload.customer.first_name + " " + &payload.customer.last_name,
             payload.customer.email
         ),
-        subject: format!("#{}: We have received your order", "TODO"),
+        subject: format!("#{}: We have received your order", payload.order_number),
         html_body: template_filled,
     };
 

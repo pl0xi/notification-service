@@ -73,6 +73,7 @@ pub async fn verify_shopify_origin(db_client: State<DbClient>, req: Request, nex
         return Err((StatusCode::OK, e.to_string()));
     }
 
+    // This should run last, right before the request is returned
     if let Err(e) = create_event(&client, &event_id).await {
         return Err((StatusCode::INTERNAL_SERVER_ERROR, e.to_string()));
     };

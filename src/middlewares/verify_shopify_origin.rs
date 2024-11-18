@@ -67,18 +67,22 @@ pub async fn verify_shopify_origin(db_client: State<DbClient>, req: Request, nex
     }
 
     let client = db_client.get_client().await.unwrap();
-    let event_id = req.headers().get("X-Shopify-Event-Id").unwrap().to_str().unwrap();
-    if let Err(e) = check_duplicate_event(&client, &event_id).await {
-        // Event has to return 200 OK, else Shopify will retry with duplicate event
-        return Err((StatusCode::OK, e.to_string()));
+    let event_id = req.headers().get("X-Shopify-Event-Id").unwrap().to_str().unwrap().to_string();
+
+    // Event has to return 200 OK, else Shopify will retry with duplicate event
+    check_duplicate_event(&client, &event_id)
+        .await
+        .map_err(|e| (StatusCode::OK, e.to_string()))?;
+
+    let response = next.run(req).await;
+
+    if response.status().is_success() {
+        create_event(&client, &event_id)
+            .await
+            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
     }
 
-    // This should run last, right before the request is returned
-    if let Err(e) = create_event(&client, &event_id).await {
-        return Err((StatusCode::INTERNAL_SERVER_ERROR, e.to_string()));
-    };
-
-    Ok(next.run(req).await)
+    Ok(response)
 }
 
 // Shopify in rare cases can send duplicate events, so we need to check if the event has already been processed

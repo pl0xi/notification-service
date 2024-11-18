@@ -28,12 +28,29 @@ INSERT INTO email_templates (name, content) VALUES (
     </html>'
 );
 
+INSERT INTO email_templates (name, content) VALUES (
+    'order_cancelled_example',
+    '<!DOCTYPE html>
+    <html>
+    <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+        <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+            <h1 style="color: #2c3e50;">Your order has been cancelled</h1>
+        </div>
+
+        <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+            {{> signature}}
+        </div>
+    </body>
+    </html>'
+);
+
 CREATE TABLE IF NOT EXISTS email_events_types (
     id SERIAL PRIMARY KEY,
     name VARCHAR(255) NOT NULL
 );
 
 INSERT INTO email_events_types (name) VALUES ('order_created');
+INSERT INTO email_events_types (name) VALUES ('order_cancelled');
 
 CREATE TABLE IF NOT EXISTS email_events (
     id SERIAL PRIMARY KEY,
@@ -44,7 +61,7 @@ CREATE TABLE IF NOT EXISTS email_events (
 );
 
 INSERT INTO email_events (event_type, template_id) VALUES (1, 1);
-
+INSERT INTO email_events (event_type, template_id) VALUES (2, 2);
 CREATE TABLE IF NOT EXISTS email_template_partials (
     id SERIAL PRIMARY KEY,
     name VARCHAR(255) NOT NULL,

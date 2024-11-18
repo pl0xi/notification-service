@@ -1,12 +1,13 @@
 mod middlewares;
 mod routes;
 mod services;
+mod utils;
 
 use axum::{middleware, routing::post, Extension, Router};
 use dotenv::dotenv;
 use handlebars::Handlebars;
 use middlewares::verify_shopify_origin;
-use routes::webhooks::handlers::order_created;
+use routes::webhooks::handlers::{order_cancelled, order_created};
 use services::db::queries::email_template::{find_all, partials::find_all_partials};
 use services::{db::client::DbClient, email::client::EmailClient, template::client::TemplateClient};
 use std::env;
@@ -60,6 +61,7 @@ async fn main() {
     // Create the app
     let app = Router::new()
         .route("/api/order/create", post(order_created))
+        .route("/api/order/cancel", post(order_cancelled))
         .layer(ServiceBuilder::new().layer(Extension(email_client)).layer(Extension(template_client)))
         .route_layer(middleware::from_fn_with_state(db_client, verify_shopify_origin));
 

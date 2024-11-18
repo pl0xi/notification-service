@@ -24,6 +24,7 @@ async fn main() {
         env::var("smtp_username").unwrap(),
         env::var("smtp_password").unwrap(),
         env::var("smtp_host").unwrap().as_str(),
+        env::var("origin_email").unwrap(),
     );
 
     // Get templates from database and persist in memory with the template client

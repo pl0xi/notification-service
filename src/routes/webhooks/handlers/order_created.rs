@@ -8,7 +8,7 @@ use axum::{
 use serde::{Deserialize, Serialize};
 
 #[derive(Deserialize, Serialize, Debug)]
-struct Contact {
+struct Customer {
     email: String,
     first_name: String,
     last_name: String,
@@ -16,10 +16,9 @@ struct Contact {
 
 #[derive(Deserialize, Serialize, Debug)]
 pub struct OrderCreatedWebhook {
-    contact: Contact,
+    customer: Customer,
 }
 
-#[allow(unused_variables)]
 pub async fn order_created(
     Extension(email_client): Extension<EmailClient>,
     Extension(template_client): Extension<TemplateClient>,
@@ -28,17 +27,20 @@ pub async fn order_created(
     let template_filled = template_client.get_template_filled("order_created", &payload).unwrap();
 
     let email = Email {
-        to: payload.contact.email,
-        subject: "Order Created".to_string(),
+        to: format!(
+            "{} <{}>",
+            payload.customer.first_name + " " + &payload.customer.last_name,
+            payload.customer.email
+        ),
+        subject: format!("#{}: We have received your order", "TODO"),
         html_body: template_filled,
     };
 
-    // match email_client.send_email(email) {
-    //     Ok(_) => StatusCode::OK,
-    //     Err(e) => {
-    //         println!("Error sending email: {:?}", e);
-    //         StatusCode::INTERNAL_SERVER_ERROR
-    //     }
-
-    StatusCode::OK
+    match email_client.send_email(email).await {
+        Ok(_) => StatusCode::OK,
+        Err(e) => {
+            println!("Error sending email: {:?}", e);
+            StatusCode::INTERNAL_SERVER_ERROR
+        }
+    }
 }

@@ -9,7 +9,7 @@ use handlebars::Handlebars;
 use middlewares::verify_shopify_origin;
 use routes::webhooks::handlers::{order_cancelled, order_created};
 use services::db::queries::email_template::{find_all, partials::find_all_partials};
-use services::{db::client::DbClient, email::client::EmailClient, template::client::TemplateClient};
+use services::{db::client::DbClient, email::EmailClient, template::TemplateClient};
 use std::env;
 use tower::ServiceBuilder;
 

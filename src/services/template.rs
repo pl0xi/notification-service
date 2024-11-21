@@ -3,7 +3,7 @@ use serde::Serialize;
 use thiserror::Error;
 
 #[derive(Debug, Error)]
-pub enum TemplateClientError {
+pub enum ManagerError {
     #[error("Failed to get template")]
     FailedToGetTemplate,
 
@@ -12,27 +12,27 @@ pub enum TemplateClientError {
 }
 
 #[derive(Clone)]
-pub struct TemplateClient {
+pub struct Manager {
     templates: Handlebars<'static>,
 }
 
-impl TemplateClient {
+impl Manager {
     pub fn new(templates: Handlebars<'static>) -> Self {
         Self { templates }
     }
 
-    pub fn get_template_filled<T: Serialize>(&self, template_name: &str, template_args: T) -> Result<String, TemplateClientError> {
+    pub fn get_template_filled<T: Serialize>(&self, template_name: &str, template_args: T) -> Result<String, ManagerError> {
         match self.templates.render(template_name, &template_args) {
             Ok(rendered_template) => Ok(rendered_template),
-            Err(_) => Err(TemplateClientError::FailedToGetTemplate),
+            Err(_) => Err(ManagerError::FailedToGetTemplate),
         }
     }
 
     #[allow(unused)]
-    pub fn upsert_template(&mut self, template_name: &str, template: &str) -> Result<(), TemplateClientError> {
+    pub fn upsert_template(&mut self, template_name: &str, template: &str) -> Result<(), ManagerError> {
         match self.templates.register_template_string(template_name, template) {
-            Ok(_) => Ok(()),
-            Err(e) => Err(TemplateClientError::TemplateRegistrationError),
+            Ok(()) => Ok(()),
+            Err(_) => Err(ManagerError::TemplateRegistrationError),
         }
     }
 }

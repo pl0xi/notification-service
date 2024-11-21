@@ -1,20 +1,20 @@
-use deadpool_postgres::{Client, Config, Pool, Runtime};
+use deadpool_postgres::{Client, Config, Runtime};
 use std::env;
 use thiserror::Error;
 use tokio_postgres::NoTls;
 
 #[derive(Error, Debug, PartialEq)]
-pub enum DbClientError {
+pub enum PoolError {
     #[error("Failed to get client from pool")]
     FailedToGetClient,
 }
 
 #[derive(Clone)]
-pub struct DbClient {
-    pool: Pool,
+pub struct Pool {
+    pool: deadpool_postgres::Pool,
 }
 
-impl DbClient {
+impl Pool {
     pub fn new() -> Self {
         let mut setup_config = Config::new();
         setup_config.dbname = Some(env::var("postgres_db").unwrap());
@@ -26,7 +26,7 @@ impl DbClient {
         }
     }
 
-    pub async fn get_client(&self) -> Result<Client, DbClientError> {
-        self.pool.get().await.map_err(|_| DbClientError::FailedToGetClient)
+    pub async fn get_client(&self) -> Result<Client, PoolError> {
+        self.pool.get().await.map_err(|_| PoolError::FailedToGetClient)
     }
 }

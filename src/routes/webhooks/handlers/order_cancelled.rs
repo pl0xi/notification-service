@@ -1,5 +1,5 @@
-use crate::services::{email::client::Email, email::client::EmailClient, template::client::TemplateClient};
-use crate::utils::shopify::webhook_types::Customer;
+use crate::services::{email::Mailer, template::Manager};
+use crate::utils::{shopify::webhook_types::Customer, Email};
 use axum::{
     extract::{Extension, Json},
     http::StatusCode,
@@ -8,17 +8,17 @@ use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
 
 #[derive(Deserialize, Serialize, Debug)]
-pub struct OrderCancelledWebhook {
+pub struct CancelledOrderWebhook {
     customer: Customer,
     order_number: String,
 }
 
 pub async fn order_cancelled(
-    Extension(email_client): Extension<EmailClient>,
-    Extension(template_client): Extension<TemplateClient>,
-    Json(payload): Json<OrderCancelledWebhook>,
+    Extension(mailer): Extension<Mailer>,
+    Extension(template_manager): Extension<Manager>,
+    Json(payload): Json<CancelledOrderWebhook>,
 ) -> StatusCode {
-    let template_filled = template_client.get_template_filled("order_cancelled", &payload).unwrap();
+    let template_filled = template_manager.get_template_filled("order_cancelled", &payload).unwrap();
 
     let email = Email {
         to: format!(
@@ -30,10 +30,10 @@ pub async fn order_cancelled(
         html_body: template_filled,
     };
 
-    match email_client.send_email(email).await {
-        Ok(_) => StatusCode::OK,
+    match mailer.send_email(email).await {
+        Ok(()) => StatusCode::OK,
         Err(e) => {
-            println!("Error sending email: {:?}", e);
+            println!("Error sending email: {e}");
             StatusCode::INTERNAL_SERVER_ERROR
         }
     }

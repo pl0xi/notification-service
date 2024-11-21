@@ -1,5 +1,5 @@
-use crate::services::db::client::DbClient;
-use crate::services::db::queries::events::{create_event, get_event};
+use crate::services::database::Pool;
+use crate::services::queries::event;
 use axum::{
     extract::{Request, State},
     http::{HeaderMap, StatusCode},
@@ -61,8 +61,8 @@ pub enum CheckDuplicateEventError {
     DuplicateEvent,
 }
 
-pub async fn verify_shopify_origin(db_client: State<DbClient>, req: Request, next: Next) -> Result<Response, (StatusCode, String)> {
-    if let Err(e) = verify_headers(&req.headers()) {
+pub async fn verify_shopify_origin(db_client: State<Pool>, req: Request, next: Next) -> Result<Response, (StatusCode, String)> {
+    if let Err(e) = verify_headers(req.headers()) {
         return Err((StatusCode::BAD_REQUEST, e.to_string()));
     }
 
@@ -77,7 +77,7 @@ pub async fn verify_shopify_origin(db_client: State<DbClient>, req: Request, nex
     let response = next.run(req).await;
 
     if response.status().is_success() {
-        create_event(&client, &event_id)
+        event::create(&client, &event_id)
             .await
             .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
     }
@@ -87,7 +87,7 @@ pub async fn verify_shopify_origin(db_client: State<DbClient>, req: Request, nex
 
 // Shopify in rare cases can send duplicate events, so we need to check if the event has already been processed
 async fn check_duplicate_event(client: &Object, event_id: &str) -> Result<(), CheckDuplicateEventError> {
-    let get_event = get_event(&client, event_id).await;
+    let get_event = event::get(client, event_id).await;
     if get_event.is_ok() {
         return Err(CheckDuplicateEventError::DuplicateEvent);
     }
@@ -166,9 +166,7 @@ mod tests {
         headers.insert("X-Shopify-Hmac-Sha256", HMAC_VALUE.parse().unwrap());
         headers.insert("X-Shopify-Api-Version", API_VERSION.parse().unwrap());
         headers.insert("Content-Type", "application/json".parse().unwrap());
-        let result = verify_headers(&headers).unwrap();
-        let expected = ();
-        assert_eq!(result, expected);
+        assert!(verify_headers(&headers).is_ok());
     }
 
     #[test]
@@ -290,9 +288,7 @@ mod tests {
     #[test]
     fn test_verify_hmac_sha256_correct_hmac_sha256() {
         setup_verify_hmac_sha256();
-        let result = verify_hmac_sha256(HMAC_VALUE.as_bytes()).unwrap();
-        let expected = ();
-        assert_eq!(result, expected);
+        assert!(verify_hmac_sha256(HMAC_VALUE.as_bytes()).is_ok());
     }
 
     #[test]

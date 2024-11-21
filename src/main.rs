@@ -1,3 +1,4 @@
+mod error;
 mod middlewares;
 mod routes;
 mod services;
@@ -8,8 +9,12 @@ use dotenv::dotenv;
 use handlebars::Handlebars;
 use middlewares::verify_shopify_origin;
 use routes::webhooks::handlers::{order_cancelled, order_created};
-use services::db::queries::email_template::{find_all, partials::find_all_partials};
-use services::{db::client::DbClient, email::EmailClient, template::TemplateClient};
+use services::{
+    database::Pool,
+    email::Mailer,
+    queries::{email_template, partial},
+    template::Manager,
+};
 use std::env;
 use tower::ServiceBuilder;
 
@@ -18,10 +23,10 @@ async fn main() {
     dotenv().ok();
 
     // Create a database client
-    let db_client = DbClient::new();
+    let db_client = Pool::new();
 
     // Create an email client
-    let email_client = EmailClient::new(
+    let mailer = Mailer::new(
         env::var("smtp_username").unwrap(),
         env::var("smtp_password").unwrap(),
         env::var("smtp_host").unwrap().as_str(),
@@ -30,39 +35,39 @@ async fn main() {
 
     // Get templates from database and persist in memory with the template client
     let mut templates = Handlebars::new();
-    let templates_from_db = find_all(&db_client.get_client().await.unwrap()).await.unwrap();
+    let templates_from_db = email_template::get_all(&db_client.get_client().await.unwrap()).await.unwrap();
     for template in templates_from_db {
         let name: &str = template.get("name");
         let content: &str = template.get("content");
 
         if templates.register_template_string(name, content).is_ok() {
-            println!("Template registered and ready: {}", name);
+            println!("Template registered and ready: {name}");
         } else {
-            println!("Error registering template: {}", name);
+            println!("Error registering template: {name}");
         }
     }
 
     // Get partials from database and persist in memory with the template client
-    let partials_templates_from_db = find_all_partials(&db_client.get_client().await.unwrap()).await.unwrap();
+    let partials_templates_from_db = partial::get_all(&db_client.get_client().await.unwrap()).await.unwrap();
     for partial in partials_templates_from_db {
         let name: &str = partial.get("name");
         let content: &str = partial.get("content");
 
         if templates.register_partial(name, content).is_ok() {
-            println!("Partial template registered and ready: {}", name);
+            println!("Partial template registered and ready: {name}");
         } else {
-            println!("Error registering partial template: {}", name);
+            println!("Error registering partial template: {name}");
         }
     }
 
     // Create a template client
-    let template_client = TemplateClient::new(templates);
+    let template_manager = Manager::new(templates);
 
     // Create the app
     let app = Router::new()
         .route("/api/order/create", post(order_created))
         .route("/api/order/cancel", post(order_cancelled))
-        .layer(ServiceBuilder::new().layer(Extension(email_client)).layer(Extension(template_client)))
+        .layer(ServiceBuilder::new().layer(Extension(mailer)).layer(Extension(template_manager)))
         .route_layer(middleware::from_fn_with_state(db_client, verify_shopify_origin));
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();

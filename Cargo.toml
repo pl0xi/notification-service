@@ -1,8 +1,16 @@
 [package]
-name = "notification-service"
+name = "notification_service"
 version = "0.1.0"
 authors = ["Benjamin Sommervoll <puixdk@gmail.com>"]
 edition = "2021"
+
+[lib]
+name = "notification_service"
+path = "src/lib.rs"
+
+[[bin]]
+name = "notification_service"
+path = "src/main.rs"
 
 [dependencies]
 axum = "0.7.7"

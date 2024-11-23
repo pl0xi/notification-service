@@ -1,0 +1,55 @@
+name: Run Integration Tests
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - '*'
+
+jobs:
+  test:
+    name: Run Integration Tests
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:17.0-alpine
+        env:
+          POSTGRES_PASSWORD: ${{ secrets.TEST_POSTGRES_PASSWORD }}
+          POSTGRES_USER: ${{ secrets.TEST_POSTGRES_USER }}
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+      
+      - name: Create test env file
+        run: | 
+          echo "postgres_url=${{ secrets.TEST_POSTGRES_URL }}" >> .env.test
+          echo "postgres_user=${{ secrets.TEST_POSTGRES_USER }}" >> .env.test
+          echo "postgres_password=${{ secrets.TEST_POSTGRES_PASSWORD }}" >> .env.test
+          echo "postgres_db=${{ secrets.TEST_POSTGRES_DB }}" >> .env.test 
+          
+      - name: Initialize database with core.sql
+        run: |
+          PGPASSWORD=${{ secrets.TEST_POSTGRES_PASSWORD }} psql \
+            -h localhost \
+            -U ${{ secrets.TEST_POSTGRES_USER }} \
+            -d ${{ secrets.TEST_POSTGRES_DB }} \
+            -f ./db/core.sql
+            
+      - name: Run tests
+        run: cargo test --test '*' --verbose  -- --nocapture

@@ -1,29 +1,36 @@
-mod error;
-mod middlewares;
-mod routes;
-mod services;
-mod utils;
-
 use axum::{middleware, routing::post, Extension, Router};
 use dotenv::dotenv;
 use handlebars::Handlebars;
-use middlewares::verify_shopify_origin;
-use routes::webhooks::handlers::{order_cancelled, order_created};
-use services::{
-    database::Pool,
-    email::Mailer,
-    queries::{email_template, partial},
-    template::Manager,
+use notification_service::{
+    middlewares::verify_shopify_origin,
+    routes::webhooks::handlers::{order_cancelled, order_created},
+    services::{
+        database::Pool,
+        email::Mailer,
+        queries::{email_template, partial},
+        template::Manager,
+    },
 };
 use std::env;
 use tower::ServiceBuilder;
 
+/// Main application entry point
+/// # Panics
+/// This function may panic if:
+/// - Required environment variables are missing
+/// - Database connection fails
+/// - TCP listener fails to bind
 #[tokio::main]
-async fn main() {
+pub async fn main() {
     dotenv().ok();
 
     // Create a database client
-    let db_client = Pool::new();
+    let db_client = Pool::new(
+        env::var("postgres_db").unwrap(),
+        env::var("postgres_url").unwrap(),
+        env::var("postgres_user").unwrap(),
+        env::var("postgres_password").unwrap(),
+    );
 
     // Create an email client
     let mailer = Mailer::new(

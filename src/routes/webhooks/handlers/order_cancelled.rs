@@ -20,17 +20,18 @@ pub struct CancelledOrderWebhook {
 /// * `payload` - The cancelled order webhook payload
 /// # Returns
 /// * `StatusCode` - The status code of the response
-/// # Panics
-/// This function may panic if:
-/// - The template is not found
-/// - The email fails to send
 pub async fn order_cancelled(
     Extension(mailer): Extension<Mailer>,
     Extension(template_manager): Extension<Manager>,
     Json(payload): Json<CancelledOrderWebhook>,
 ) -> StatusCode {
-    // TODO: dont panic, return error
-    let template_filled = template_manager.get_template_filled("order_cancelled", &payload).unwrap();
+    let template_filled = match template_manager.get_template_filled("order_cancelled", &payload) {
+        Ok(template_filled) => template_filled,
+        Err(e) => {
+            println!("Error getting template: {e}");
+            return StatusCode::INTERNAL_SERVER_ERROR;
+        }
+    };
 
     let email = Email {
         to: format!(

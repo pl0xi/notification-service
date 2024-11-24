@@ -27,6 +27,14 @@ pub struct Mailer {
 }
 
 impl Mailer {
+    /// Creates a new mailer.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the mailer cannot be created.
+    ///
+    /// # Errors
+    #[must_use]
     pub fn new(smtp_username: String, smtp_password: String, smtp_host: &str, origin_email: String) -> Self {
         let credentials = Credentials::new(smtp_username, smtp_password);
         let mailer: AsyncSmtpTransport<Tokio1Executor> = AsyncSmtpTransport::<Tokio1Executor>::relay(smtp_host)
@@ -38,6 +46,11 @@ impl Mailer {
         Self { mailer, origin_email }
     }
 
+    /// Sends an email.
+    ///
+    /// # Errors
+    ///
+    /// Returns `MailerError::SmtpSendError` if the email cannot be sent.
     pub async fn send_email(&self, email: Email) -> Result<(), MailerError> {
         let send_email_request = Message::builder()
             .from(self.origin_email.parse().map_err(|_| MailerError::InvalidOriginEmail)?)

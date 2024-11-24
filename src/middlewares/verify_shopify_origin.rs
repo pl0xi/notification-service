@@ -61,13 +61,29 @@ pub enum CheckDuplicateEventError {
     DuplicateEvent,
 }
 
+/// Verifies the Shopify origin of the request.
+///
+/// # Errors
+///
+/// Returns `(StatusCode::BAD_REQUEST, e.to_string())` if the headers are invalid.  
+/// Returns `(StatusCode::INTERNAL_SERVER_ERROR, e.to_string())` if the event is duplicate.
 pub async fn verify_shopify_origin(db_client: State<Pool>, req: Request, next: Next) -> Result<Response, (StatusCode, String)> {
     if let Err(e) = verify_headers(req.headers()) {
         return Err((StatusCode::BAD_REQUEST, e.to_string()));
     }
 
-    let client = db_client.get_client().await.unwrap();
-    let event_id = req.headers().get("X-Shopify-Event-Id").unwrap().to_str().unwrap().to_string();
+    let client = db_client
+        .get_client()
+        .await
+        .map_err(|_| (StatusCode::INTERNAL_SERVER_ERROR, "Internal server error".to_string()))?;
+
+    let event_id = req
+        .headers()
+        .get("X-Shopify-Event-Id")
+        .ok_or((StatusCode::BAD_REQUEST, "Missing event ID".to_string()))?
+        .to_str()
+        .map_err(|_| (StatusCode::BAD_REQUEST, "Invalid event ID".to_string()))?
+        .to_string();
 
     // Event has to return 200 OK, else Shopify will retry with duplicate event
     check_duplicate_event(&client, &event_id)

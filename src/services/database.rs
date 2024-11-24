@@ -14,6 +14,12 @@ pub struct Pool {
 }
 
 impl Pool {
+    /// Creates a new database connection pool.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the pool creation fails.
+    #[must_use]
     pub fn new(db_name: String, db_url: String, db_user: String, db_password: String) -> Self {
         let mut setup_config = Config::new();
         setup_config.dbname = Some(db_name);
@@ -26,6 +32,11 @@ impl Pool {
         }
     }
 
+    /// Gets a client from the pool.
+    ///
+    /// # Errors
+    ///
+    /// Returns `PoolError::FailedToGetClient` if the client cannot be retrieved from the pool.
     pub async fn get_client(&self) -> Result<Client, PoolError> {
         self.pool.get().await.map_err(|_| PoolError::FailedToGetClient)
     }

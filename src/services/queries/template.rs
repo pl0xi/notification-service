@@ -9,10 +9,10 @@ use tokio_postgres::Row;
 /// Returns `QueryError::Get("templates")` if the templates cannot be retrieved.
 pub async fn get_all(db: &Client) -> Result<Vec<Row>, QueryError> {
     let query = "
-        SELECT et.content, eet.name 
-        FROM email_templates et
-        INNER JOIN email_events ee ON et.id = ee.template_id
-        INNER JOIN email_events_types eet ON ee.event_type = eet.id
+        SELECT et.content, tt.name 
+        FROM templates et
+        INNER JOIN active_templates at ON et.id = at.template_id
+        INNER JOIN template_types tt ON at.template_type_id = tt.id
     ";
 
     let rows = db.query(query, &[]).await.map_err(|_| QueryError::Get("templates"))?;
@@ -27,7 +27,7 @@ pub async fn get_all(db: &Client) -> Result<Vec<Row>, QueryError> {
 /// Returns `QueryError::Get("template")` if the template cannot be retrieved.
 #[allow(unused)]
 pub async fn get(client: &Client, name: &str) -> Result<Row, QueryError> {
-    let query = "SELECT * FROM email_templates WHERE name = $1";
+    let query = "SELECT * FROM templates WHERE name = $1";
     let row = client.query_one(query, &[&name]).await.map_err(|_| QueryError::Get("template"))?;
 
     Ok(row)

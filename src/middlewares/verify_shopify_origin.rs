@@ -161,9 +161,9 @@ fn verify_hmac_sha256(hmac_sha256: &[u8]) -> Result<(), VerifyHmacSha256Error> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    // Test for verify_headers
     const SHOP_DOMAIN: &str = "test.myshopify.com";
     const API_VERSION: &str = "2024-10";
+    const HMAC_VALUE: &str = "a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2";
 
     fn setup_verify_headers() {
         env::set_var("shopify_shop_url", SHOP_DOMAIN);
@@ -293,9 +293,6 @@ mod tests {
         assert!(result.is_err());
         assert_eq!(result.unwrap_err(), VerifyHeadersError::IncorrectContentType);
     }
-
-    // Test for verify_hmac_sha256
-    const HMAC_VALUE: &str = "a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2";
 
     fn setup_verify_hmac_sha256() {
         env::set_var("shopify_webhook_secret", HMAC_VALUE);

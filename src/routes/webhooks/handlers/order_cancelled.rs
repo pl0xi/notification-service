@@ -14,6 +14,7 @@ pub struct CancelledOrderWebhook {
 }
 
 /// Handles the order cancelled webhook
+/// <https://shopify.dev/docs/api/webhooks?reference=toml#list-of-topics-orders/cancelled>
 /// # Arguments
 /// * `mailer` - The mailer service
 /// * `template_manager` - The template manager service
@@ -41,9 +42,18 @@ pub async fn order_cancelled(
         ),
         subject: format!("#{}: Your order has been cancelled", payload.order_number),
         html_body: template_filled,
+        attachment: None,
     };
 
-    match mailer.send_email(email).await {
+    let mail = match mailer.create_mail(email) {
+        Ok(mail) => mail,
+        Err(e) => {
+            println!("Error creating mail: {e}");
+            return StatusCode::INTERNAL_SERVER_ERROR;
+        }
+    };
+
+    match mailer.send_mail(mail).await {
         Ok(()) => StatusCode::OK,
         Err(e) => {
             println!("Error sending email: {e}");

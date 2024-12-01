@@ -3,11 +3,11 @@ use dotenv::dotenv;
 use handlebars::Handlebars;
 use notification_service::{
     middlewares::verify_shopify_origin,
-    routes::webhooks::handlers::{order_cancelled, order_created},
+    routes::webhooks::handlers::{order_cancelled, order_created, order_fulfilled},
     services::{
         database::Pool,
         email::Mailer,
-        queries::{email_template, partial},
+        queries::{partial, template},
         template::Manager,
     },
 };
@@ -42,7 +42,7 @@ pub async fn main() {
 
     // Get templates from database and persist in memory with the template client
     let mut templates = Handlebars::new();
-    let templates_from_db = email_template::get_all(&db_client.get_client().await.unwrap()).await.unwrap();
+    let templates_from_db = template::get_all(&db_client.get_client().await.unwrap()).await.unwrap();
     for template in templates_from_db {
         let name: &str = template.get("name");
         let content: &str = template.get("content");
@@ -74,6 +74,7 @@ pub async fn main() {
     let app = Router::new()
         .route("/api/order/create", post(order_created))
         .route("/api/order/cancel", post(order_cancelled))
+        .route("/api/order/fulfilled", post(order_fulfilled))
         .layer(ServiceBuilder::new().layer(Extension(mailer)).layer(Extension(template_manager)))
         .route_layer(middleware::from_fn_with_state(db_client, verify_shopify_origin));
 

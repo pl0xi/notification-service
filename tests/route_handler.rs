@@ -4,7 +4,7 @@ use notification_service::middlewares::verify_shopify_origin;
 use notification_service::routes::webhooks::handlers::{order_cancelled, order_created};
 use notification_service::services::database::Pool;
 use notification_service::services::email::MailerError;
-use notification_service::services::queries::{email_template, partial};
+use notification_service::services::queries::{partial, template};
 use notification_service::services::template::Manager;
 use tower::{ServiceBuilder, ServiceExt};
 
@@ -48,7 +48,7 @@ pub async fn setup_app() -> Result<Router, Box<dyn std::error::Error>> {
     );
 
     let mut templates = Handlebars::new();
-    let templates_from_db = email_template::get_all(&db_client.get_client().await.unwrap()).await.unwrap();
+    let templates_from_db = template::get_all(&db_client.get_client().await.unwrap()).await.unwrap();
     for template in templates_from_db {
         let name: &str = template.get("name");
         let content: &str = template.get("content");
@@ -83,12 +83,100 @@ pub async fn setup_app() -> Result<Router, Box<dyn std::error::Error>> {
         .route_layer(middleware::from_fn_with_state(db_client, verify_shopify_origin)))
 }
 
-#[tokio::test]
-async fn test_order_no_headers() {
-    let app = setup_app().await.unwrap();
-    let response = app
-        .oneshot(Request::builder().uri("/api/order/create").body(Body::empty()).unwrap())
-        .await
-        .unwrap();
-    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+mod tests {
+    use super::*;
+    use axum::http::request::Builder;
+    static mut SHOPIFY_EVENT_ID: u32 = 0;
+
+    lazy_static::lazy_static! {
+        static ref SHOPIFY_SHOP_URL: String = std::env::var("shopify_shop_url").unwrap();
+        static ref SHOPIFY_WEBHOOK_SECRET: String = std::env::var("shopify_webhook_secret").unwrap();
+        static ref SHOPIFY_API_VERSION: String = std::env::var("shopify_api_version").unwrap();
+    }
+
+    fn create_request_builder() -> Builder {
+        // Unsafe because possible overflow (Will prob never happen, in this case)
+        unsafe {
+            SHOPIFY_EVENT_ID += 1;
+        }
+
+        Request::builder()
+            .method("POST")
+            .header("X-Shopify-Topic", "orders/create")
+            .header("X-Shopify-Webhook-Id", "1234567890")
+            .header("X-Shopify-Event-Id", unsafe { SHOPIFY_EVENT_ID })
+            .header("X-Shopify-Shop-Domain", SHOPIFY_SHOP_URL.to_string())
+            .header("X-Shopify-Hmac-Sha256", SHOPIFY_WEBHOOK_SECRET.to_string())
+            .header("X-Shopify-Api-Version", SHOPIFY_API_VERSION.to_string())
+            .header("Content-Type", "application/json")
+    }
+
+    #[tokio::test]
+    async fn test_routes_no_headers() {
+        let app = setup_app().await.unwrap();
+
+        let create_order_response = app
+            .clone()
+            .oneshot(Request::builder().uri("/api/order/create").body(Body::empty()).unwrap())
+            .await
+            .unwrap();
+
+        let cancelled_order_response = app
+            .oneshot(Request::builder().uri("/api/order/cancel").body(Body::empty()).unwrap())
+            .await
+            .unwrap();
+
+        assert_eq!(create_order_response.status(), StatusCode::BAD_REQUEST);
+        assert_eq!(cancelled_order_response.status(), StatusCode::BAD_REQUEST);
+    }
+
+    #[tokio::test]
+    #[ignore]
+    async fn test_routes_invalid_hmac_sha256() {
+        let app = setup_app().await.unwrap();
+        let response = app
+            .oneshot(
+                create_request_builder()
+                    .header("X-Shopify-Hmac-Sha256", "invalid")
+                    .uri("/api/order/create")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    }
+
+    #[tokio::test]
+    #[ignore]
+    async fn test_routes_no_body() {
+        let app = setup_app().await.unwrap();
+
+        let create_order_response = app
+            .clone()
+            .oneshot(create_request_builder().uri("/api/order/create").body(Body::empty()).unwrap())
+            .await
+            .unwrap();
+
+        let cancelled_order_response = app
+            .oneshot(create_request_builder().uri("/api/order/cancel").body(Body::empty()).unwrap())
+            .await
+            .unwrap();
+
+        assert_eq!(create_order_response.status(), StatusCode::BAD_REQUEST);
+        assert_eq!(cancelled_order_response.status(), StatusCode::BAD_REQUEST);
+    }
+
+    #[tokio::test]
+    #[ignore]
+    async fn test_create_order_route() {
+        let app = setup_app().await.unwrap();
+
+        let response = app
+            .oneshot(create_request_builder().uri("/api/order/create").body(Body::from("{}")).unwrap())
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+    }
 }

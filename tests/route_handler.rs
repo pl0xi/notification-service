@@ -234,4 +234,26 @@ mod tests {
 
         assert_eq!(response.status(), StatusCode::OK);
     }
+
+    #[tokio::test]
+    async fn test_fulfilled_order_route() {
+        let app = setup_app().await.unwrap();
+        let json_body = serde_json::json!({
+            "order_number": "1234567890",
+            "customer": {
+                "email": "test@test.com",
+                "first_name": "John",
+                "last_name": "Doe"
+            }
+        });
+
+        let request = create_request_builder()
+            .uri("/api/order/fulfilled")
+            .body(Body::from(json_body.to_string()))
+            .unwrap();
+
+        let response = app.oneshot(request).await.unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+    }
 }

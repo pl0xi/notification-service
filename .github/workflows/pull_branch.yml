@@ -42,6 +42,9 @@ jobs:
           echo "postgres_user=${{ secrets.TEST_POSTGRES_USER }}" >> .env.test
           echo "postgres_password=${{ secrets.TEST_POSTGRES_PASSWORD }}" >> .env.test
           echo "postgres_db=${{ secrets.TEST_POSTGRES_DB }}" >> .env.test 
+          echo "shopify_shop_url=${{ secrets.TEST_SHOPIFY_SHOP_URL }}" >> .env.test
+          echo "shopify_webhook_secret=${{ secrets.TEST_SHOPIFY_WEBHOOK_SECRET }}" >> .env.test
+          echo "shopify_api_version=${{ secrets.TEST_SHOPIFY_API_VERSION }}" >> .env.test
           
       - name: Initialize database with core.sql
         run: |

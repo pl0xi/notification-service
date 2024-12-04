@@ -25,13 +25,38 @@ pub enum MailerError {
     InvalidAttachment,
 }
 
+#[async_trait::async_trait]
+pub trait MailerTrait {
+    fn new(smtp_username: String, smtp_password: String, smtp_host: &str, origin_email: String) -> Self;
+    /// Creates a mail.
+    ///
+    /// # Arguments
+    ///
+    /// * `email` - The email to send
+    ///
+    /// # Returns
+    ///
+    /// Returns a `Message` if the email is valid.
+    ///
+    /// # Errors
+    ///
+    /// Returns `MailerError::InvalidOriginEmail` if the origin email is invalid.
+    /// Returns `MailerError::InvalidRecipientEmail` if the recipient email is invalid.
+    /// Returns `MailerError::BuildEmailError` if the email cannot be built.
+    fn create_mail(&self, email: Email) -> Result<Message, MailerError>;
+
+    /// Sends a mail.
+    async fn send_mail(&self, email: Message) -> Result<(), MailerError>;
+}
+
 #[derive(Clone)]
 pub struct Mailer {
     mailer: AsyncSmtpTransport<Tokio1Executor>,
     origin_email: String,
 }
 
-impl Mailer {
+#[async_trait::async_trait]
+impl MailerTrait for Mailer {
     /// Creates a new mailer.
     ///
     /// # Panics
@@ -39,8 +64,7 @@ impl Mailer {
     /// Panics if the mailer cannot be created.
     ///
     /// # Errors
-    #[must_use]
-    pub fn new(smtp_username: String, smtp_password: String, smtp_host: &str, origin_email: String) -> Self {
+    fn new(smtp_username: String, smtp_password: String, smtp_host: &str, origin_email: String) -> Self {
         let credentials = Credentials::new(smtp_username, smtp_password);
         let mailer: AsyncSmtpTransport<Tokio1Executor> = AsyncSmtpTransport::<Tokio1Executor>::relay(smtp_host)
             .unwrap()
@@ -66,7 +90,7 @@ impl Mailer {
     /// Returns `MailerError::InvalidOriginEmail` if the origin email is invalid.
     /// Returns `MailerError::InvalidRecipientEmail` if the recipient email is invalid.
     /// Returns `MailerError::BuildEmailError` if the email cannot be built.
-    pub fn create_mail(&self, email: Email) -> Result<Message, MailerError> {
+    fn create_mail(&self, email: Email) -> Result<Message, MailerError> {
         let html_part = SinglePart::builder().header(ContentType::TEXT_HTML).body(email.html_body);
 
         let mut email_parts = MultiPart::mixed().singlepart(html_part);
@@ -99,7 +123,7 @@ impl Mailer {
     /// # Errors
     ///
     /// Returns `MailerError::SmtpSendError` if the email cannot be sent.
-    pub async fn send_mail(&self, email: Message) -> Result<(), MailerError> {
+    async fn send_mail(&self, email: Message) -> Result<(), MailerError> {
         match self.mailer.send(email).await {
             Ok(_) => Ok(()),
             Err(e) => {

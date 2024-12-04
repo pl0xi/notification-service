@@ -1,4 +1,4 @@
-use crate::services::{document::create_pdf, email::Mailer, template::Manager};
+use crate::services::{document::create_pdf, email::MailerTrait, template::Manager};
 use crate::utils::{shopify::webhook_types::Customer, Email};
 use axum::extract::{Extension, Json};
 use axum::http::StatusCode;
@@ -14,8 +14,8 @@ pub struct FulfilledOrderWebhook {
 /// <https://shopify.dev/docs/api/webhooks?reference=toml#list-of-topics-orders/fulfilled>
 /// # Returns
 /// * `StatusCode` - The status code of the response
-pub async fn order_fulfilled(
-    Extension(mailer): Extension<Mailer>,
+pub async fn order_fulfilled<T: MailerTrait>(
+    Extension(mailer): Extension<T>,
     Extension(template_manager): Extension<Manager>,
     Json(payload): Json<FulfilledOrderWebhook>,
 ) -> StatusCode {

@@ -6,7 +6,7 @@ use notification_service::{
     routes::webhooks::handlers::{order_cancelled, order_created, order_fulfilled},
     services::{
         database::Pool,
-        email::Mailer,
+        email::{Mailer, MailerTrait},
         queries::{partial, template},
         template::Manager,
     },
@@ -72,9 +72,9 @@ pub async fn main() {
 
     // Create the app
     let app = Router::new()
-        .route("/api/order/create", post(order_created))
-        .route("/api/order/cancel", post(order_cancelled))
-        .route("/api/order/fulfilled", post(order_fulfilled))
+        .route("/api/order/create", post(order_created::<Mailer>))
+        .route("/api/order/cancel", post(order_cancelled::<Mailer>))
+        .route("/api/order/fulfilled", post(order_fulfilled::<Mailer>))
         .layer(ServiceBuilder::new().layer(Extension(mailer)).layer(Extension(template_manager)))
         .route_layer(middleware::from_fn_with_state(db_client, verify_shopify_origin));
 

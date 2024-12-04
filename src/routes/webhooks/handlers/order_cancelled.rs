@@ -1,4 +1,4 @@
-use crate::services::{email::Mailer, template::Manager};
+use crate::services::{email::MailerTrait, template::Manager};
 use crate::utils::{shopify::webhook_types::Customer, Email};
 use axum::{
     extract::{Extension, Json},
@@ -21,8 +21,8 @@ pub struct CancelledOrderWebhook {
 /// * `payload` - The cancelled order webhook payload
 /// # Returns
 /// * `StatusCode` - The status code of the response
-pub async fn order_cancelled(
-    Extension(mailer): Extension<Mailer>,
+pub async fn order_cancelled<T: MailerTrait>(
+    Extension(mailer): Extension<T>,
     Extension(template_manager): Extension<Manager>,
     Json(payload): Json<CancelledOrderWebhook>,
 ) -> StatusCode {

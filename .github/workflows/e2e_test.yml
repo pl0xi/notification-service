@@ -23,4 +23,4 @@ jobs:
           override: true
             
       - name: Run tests
-        run:  cargo test --package notification_service --test lib --profile e2e -- e2e::system_test::system_test --exact --show-output --nocapture
+        run: cargo test --package notification_service --test lib --profile e2e -- e2e::system_test::test_e2e --exact --show-output --nocapture

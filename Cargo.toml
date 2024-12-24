@@ -39,6 +39,7 @@ harness = false
 
 [profile.e2e]
 inherits = "release"
+debug-assertions = true
 
 [profile.release]
 codegen-units = 1

@@ -1,6 +1,7 @@
 use axum::http::HeaderMap;
 use notification_service::app::app;
 use reqwest::Client;
+use serde::{Deserialize, Serialize};
 use std::env;
 use testcontainers_modules::{
     postgres,
@@ -28,7 +29,7 @@ async fn test_e2e() {
         .unwrap();
 
     let smtp_host_port = smtp_container.get_host_port_ipv4(1025).await.unwrap();
-
+    let smtp_web_port = smtp_container.get_host_port_ipv4(8025).await.unwrap();
     let shopify_shop_url = "test.myshopify.com";
     let shopify_api_version = "2024-10";
     let shopify_webhook_secret = "a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0u1v2w3x4y5z6a7b8c9d0e1f2";
@@ -68,7 +69,7 @@ async fn test_e2e() {
     headers.insert("X-Shopify-Api-Version", shopify_api_version.parse().unwrap());
     headers.insert("Content-Type", "application/json".parse().unwrap());
 
-    create_order_route_test(client, &app_address, headers.clone()).await;
+    create_order_route_test(client, &app_address, headers.clone(), smtp_web_port).await;
 }
 
 async fn wait_for_server_start(address: &str) {
@@ -90,7 +91,7 @@ async fn wait_for_server_start(address: &str) {
 }
 
 // Tests
-async fn create_order_route_test(client: Client, address: &str, headers: HeaderMap) {
+async fn create_order_route_test(client: Client, address: &str, headers: HeaderMap, smtp_host_port: u16) {
     let body = r#"{"order_number": "1", "customer": {"email": "test@test.com", "first_name": "John", "last_name": "Doe"}}"#;
 
     let response = client
@@ -102,9 +103,33 @@ async fn create_order_route_test(client: Client, address: &str, headers: HeaderM
         .unwrap();
 
     assert!(response.status().is_success(), "Response status is not success {response:?}");
+
+    check_email_sent(client, "%231: We have received your order", smtp_host_port).await;
+}
+
+#[allow(non_snake_case, dead_code)]
+#[derive(Serialize, Deserialize)]
+struct Message {
+    ID: String,
+    MessageID: String,
+}
+
+#[derive(Serialize, Deserialize)]
+struct EmailSearchResponse {
+    messages: Vec<Message>,
 }
 
 // Function for checking email sent
-async fn check_email_sent(title: &str) {
-    
+async fn check_email_sent(client: Client, subject: &str, smtp_port: u16) {
+    let response = client
+        .get(format!("http://localhost:{smtp_port}/api/v1/search?query=subject:\"{subject}\""))
+        .send()
+        .await
+        .unwrap();
+
+    assert!(response.status().is_success(), "Response status is not success {response:?}");
+    assert!(
+        !response.json::<EmailSearchResponse>().await.unwrap().messages.is_empty(),
+        "No emails found"
+    );
 }

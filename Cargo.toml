@@ -30,10 +30,16 @@ async-trait = "0.1.83"
 [dev-dependencies]
 lazy_static = "1.5.0"
 criterion = "0.5.1"
+testcontainers-modules = { version = "0.11.4", features = ["postgres"] }
+reqwest = { version = "0.12.9", features = ["json"] }
 
 [[bench]]
 name = "benchmark_test"
 harness = false
+
+[profile.e2e]
+inherits = "release"
+debug-assertions = true
 
 [profile.release]
 codegen-units = 1

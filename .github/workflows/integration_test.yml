@@ -55,4 +55,4 @@ jobs:
             -f ./db/core.sql
             
       - name: Run tests
-        run: cargo test --test '*' --verbose  -- --nocapture
+        run: cargo test --package notification_service --test lib -- integration::route_handler::tests --show-output --nocapture

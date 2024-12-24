@@ -1,11 +1,13 @@
 use crate::utils::Email;
 use lettre::{
     message::{header::ContentType, Attachment, MultiPart, SinglePart},
-    transport::smtp::authentication::Credentials,
     AsyncSmtpTransport, AsyncTransport, Message, Tokio1Executor,
 };
 use std::time::Duration;
 use thiserror::Error;
+
+#[cfg(not(debug_assertions))]
+use lettre::transport::smtp::authentication::Credentials;
 
 #[derive(Error, Debug)]
 pub enum MailerError {
@@ -27,7 +29,7 @@ pub enum MailerError {
 
 #[async_trait::async_trait]
 pub trait MailerTrait {
-    fn new(smtp_username: String, smtp_password: String, smtp_host: &str, origin_email: String) -> Self;
+    fn new(smtp_username: String, smtp_password: String, smtp_host: &str, origin_email: String, smtp_port: u16) -> Self;
     /// Creates a mail.
     ///
     /// # Arguments
@@ -64,11 +66,23 @@ impl MailerTrait for Mailer {
     /// Panics if the mailer cannot be created.
     ///
     /// # Errors
-    fn new(smtp_username: String, smtp_password: String, smtp_host: &str, origin_email: String) -> Self {
+    #[allow(unused_variables)]
+    fn new(smtp_username: String, smtp_password: String, smtp_host: &str, origin_email: String, smtp_port: u16) -> Self {
+        #[cfg(not(debug_assertions))]
         let credentials = Credentials::new(smtp_username, smtp_password);
+
+        #[cfg(not(debug_assertions))]
         let mailer: AsyncSmtpTransport<Tokio1Executor> = AsyncSmtpTransport::<Tokio1Executor>::relay(smtp_host)
             .unwrap()
+            .port(smtp_port)
             .credentials(credentials)
+            .timeout(Some(Duration::from_secs(10)))
+            .build();
+
+        // For local development, this will not be compiled on release mode and E2E tests
+        #[cfg(debug_assertions)]
+        let mailer = AsyncSmtpTransport::<Tokio1Executor>::builder_dangerous(smtp_host)
+            .port(smtp_port)
             .timeout(Some(Duration::from_secs(10)))
             .build();
 

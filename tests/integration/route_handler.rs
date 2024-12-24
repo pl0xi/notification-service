@@ -16,7 +16,7 @@ pub struct MockMailer {}
 #[async_trait::async_trait]
 impl MailerTrait for MockMailer {
     #[allow(unused_variables)]
-    fn new(smtp_username: String, smtp_password: String, smtp_host: &str, origin_email: String) -> Self {
+    fn new(smtp_username: String, smtp_password: String, smtp_host: &str, origin_email: String, smtp_port: u16) -> Self {
         Self {}
     }
 
@@ -52,7 +52,7 @@ impl MailerTrait for MockMailer {
 pub async fn setup_app() -> Result<Router, Box<dyn std::error::Error>> {
     dotenv::from_filename(".env.test").ok();
     #[allow(unused_variables)]
-    let mailer = MockMailer::new(String::new(), String::new(), "", String::new());
+    let mailer = MockMailer::new(String::new(), String::new(), "", String::new(), 1025);
 
     let db_client = Pool::new(
         std::env::var("postgres_db").unwrap(),

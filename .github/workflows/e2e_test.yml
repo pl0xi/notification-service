@@ -1,0 +1,26 @@
+name: Run E2E tests
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  test:
+    name: Run E2E Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+            
+      - name: Run tests
+        run: cargo test --package notification_service --test lib --profile e2e -- e2e::system_test::test_e2e --exact --show-output --nocapture

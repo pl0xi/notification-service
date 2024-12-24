@@ -105,4 +105,6 @@ async fn create_order_route_test(client: Client, address: &str, headers: HeaderM
 }
 
 // Function for checking email sent
-async fn check_email_sent(title: &str) {}
+async fn check_email_sent(title: &str) {
+    
+}

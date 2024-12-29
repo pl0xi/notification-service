@@ -1,10 +1,10 @@
 CREATE TABLE IF NOT EXISTS events (
-    event_id VARCHAR(255) PRIMARY KEY
+    event_id VARCHAR(100) PRIMARY KEY
 );
 
 CREATE TABLE IF NOT EXISTS templates (
     id SERIAL PRIMARY KEY,
-    name VARCHAR(255) NOT NULL,
+    name VARCHAR(50) NOT NULL,
     content TEXT NOT NULL
 );
 
@@ -75,7 +75,7 @@ INSERT INTO templates (name, content) VALUES (
 
 CREATE TABLE IF NOT EXISTS template_types (
     id SERIAL PRIMARY KEY,
-    name VARCHAR(255) NOT NULL
+    name VARCHAR(50) NOT NULL
 );
 
 INSERT INTO template_types (name) VALUES ('order_created');
@@ -98,7 +98,7 @@ INSERT INTO active_templates (template_type_id, template_id) VALUES (4, 4);
 
 CREATE TABLE IF NOT EXISTS template_partials (
     id SERIAL PRIMARY KEY,
-    name VARCHAR(255) NOT NULL,
+    name VARCHAR(50) NOT NULL,
     content TEXT NOT NULL
 );
 

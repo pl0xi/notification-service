@@ -42,6 +42,5 @@ inherits = "release"
 debug-assertions = true
 
 [profile.release]
-debug = true
 codegen-units = 1
 lto = "fat"

@@ -1,0 +1,20 @@
+services:
+  benchmark_test:
+    container_name: benchmark_test
+    volumes:
+      - .:/usr/src/app
+    build:
+      context: ./
+      dockerfile: Dockerfile.bench
+    deploy:
+      resources:
+        limits:
+          cpus: '4'       
+          memory: 6G     
+        reservations:
+          cpus: '4'       
+          memory: 6G      
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536

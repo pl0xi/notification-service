@@ -147,3 +147,102 @@ impl MailerTrait for Mailer {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn setup_mock_transport() -> AsyncSmtpTransport<Tokio1Executor> {
+        AsyncSmtpTransport::<Tokio1Executor>::builder_dangerous("localhost").port(25).build()
+    }
+
+    #[tokio::test]
+    async fn test_create_mail_success() {
+        let mailer = Mailer {
+            mailer: setup_mock_transport(),
+            origin_email: "test@test.com".to_string(),
+        };
+
+        let email = Email {
+            to: "recipient@test.com".to_string(),
+            subject: "Test Subject".to_string(),
+            html_body: "<h1>Test Body</h1>".to_string(),
+            attachment: None,
+        };
+
+        let result = mailer.create_mail(email);
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_create_mail_with_attachment() {
+        let mailer = Mailer {
+            mailer: AsyncSmtpTransport::<Tokio1Executor>::builder_dangerous("localhost").port(25).build(),
+            origin_email: "test@test.com".to_string(),
+        };
+
+        let email = Email {
+            to: "recipient@test.com".to_string(),
+            subject: "Test Subject".to_string(),
+            html_body: "<h1>Test Body</h1>".to_string(),
+            attachment: Some(vec![1, 2, 3, 4]), // Mock PDF data
+        };
+
+        let result = mailer.create_mail(email);
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_create_mail_invalid_origin_email() {
+        let mailer = Mailer {
+            mailer: AsyncSmtpTransport::<Tokio1Executor>::builder_dangerous("localhost").port(25).build(),
+            origin_email: "invalid-email".to_string(),
+        };
+
+        let email = Email {
+            to: "recipient@test.com".to_string(),
+            subject: "Test Subject".to_string(),
+            html_body: "<h1>Test Body</h1>".to_string(),
+            attachment: None,
+        };
+
+        let result = mailer.create_mail(email);
+        assert!(matches!(result, Err(MailerError::InvalidOriginEmail)));
+    }
+
+    #[tokio::test]
+    async fn test_create_mail_invalid_recipient_email() {
+        let mailer = Mailer {
+            mailer: AsyncSmtpTransport::<Tokio1Executor>::builder_dangerous("localhost").port(25).build(),
+            origin_email: "test@test.com".to_string(),
+        };
+
+        let email = Email {
+            to: "invalid-email".to_string(),
+            subject: "Test Subject".to_string(),
+            html_body: "<h1>Test Body</h1>".to_string(),
+            attachment: None,
+        };
+
+        let result = mailer.create_mail(email);
+        assert!(matches!(result, Err(MailerError::InvalidRecipientEmail)));
+    }
+
+    #[tokio::test]
+    async fn test_send_mail_error() {
+        let mailer = Mailer {
+            mailer: setup_mock_transport(),
+            origin_email: "test@test.com".to_string(),
+        };
+
+        let message = Message::builder()
+            .from("test@test.com".parse().unwrap())
+            .to("recipient@test.com".parse().unwrap())
+            .subject("Test")
+            .body("Test body".to_string())
+            .unwrap();
+
+        let result = mailer.send_mail(message).await;
+        assert!(matches!(result, Err(MailerError::SmtpSendError)));
+    }
+}

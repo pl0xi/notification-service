@@ -61,3 +61,141 @@ pub async fn order_cancelled<T: MailerTrait>(
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::services::email::MailerError;
+    use handlebars::Handlebars;
+    use lettre::Message;
+
+    #[derive(Clone)]
+    struct MockMailer {
+        should_fail_create: bool,
+        should_fail_send: bool,
+    }
+
+    #[async_trait::async_trait]
+    impl MailerTrait for MockMailer {
+        fn new(_: String, _: String, _: &str, _: String, _: u16) -> Self {
+            Self {
+                should_fail_create: false,
+                should_fail_send: false,
+            }
+        }
+
+        fn create_mail(&self, email: Email) -> Result<Message, MailerError> {
+            if self.should_fail_create {
+                return Err(MailerError::BuildEmailError);
+            }
+            Ok(Message::builder()
+                .from("test@test.com".parse().unwrap())
+                .to(email.to.parse().unwrap())
+                .subject(email.subject)
+                .body("Test body".to_string())
+                .unwrap())
+        }
+
+        async fn send_mail(&self, _: Message) -> Result<(), MailerError> {
+            if self.should_fail_send {
+                return Err(MailerError::SmtpSendError);
+            }
+            Ok(())
+        }
+    }
+
+    #[tokio::test]
+    async fn test_order_cancelled_success() {
+        let mailer = MockMailer {
+            should_fail_create: false,
+            should_fail_send: false,
+        };
+        let mut handlebars = Handlebars::new();
+        handlebars.register_template_string("order_cancelled", "Test template").unwrap();
+        let template_manager = Manager::new(handlebars);
+
+        let payload = CancelledOrderWebhook {
+            customer: Customer {
+                email: "test@test.com".to_string(),
+                first_name: "John".to_string(),
+                last_name: "Doe".to_string(),
+            },
+            order_number: "1234".to_string(),
+        };
+
+        let result = order_cancelled(Extension(mailer), Extension(template_manager), Json(payload)).await;
+
+        assert_eq!(result, StatusCode::OK);
+    }
+
+    #[tokio::test]
+    async fn test_order_cancelled_template_error() {
+        let mailer = MockMailer {
+            should_fail_create: false,
+            should_fail_send: false,
+        };
+        let handlebars = Handlebars::new(); // No template registered
+        let template_manager = Manager::new(handlebars);
+
+        let payload = CancelledOrderWebhook {
+            customer: Customer {
+                email: "test@test.com".to_string(),
+                first_name: "John".to_string(),
+                last_name: "Doe".to_string(),
+            },
+            order_number: "1234".to_string(),
+        };
+
+        let result = order_cancelled(Extension(mailer), Extension(template_manager), Json(payload)).await;
+
+        assert_eq!(result, StatusCode::INTERNAL_SERVER_ERROR);
+    }
+
+    #[tokio::test]
+    async fn test_order_cancelled_mail_creation_error() {
+        let mailer = MockMailer {
+            should_fail_create: true,
+            should_fail_send: false,
+        };
+        let mut handlebars = Handlebars::new();
+        handlebars.register_template_string("order_cancelled", "Test template").unwrap();
+        let template_manager = Manager::new(handlebars);
+
+        let payload = CancelledOrderWebhook {
+            customer: Customer {
+                email: "test@test.com".to_string(),
+                first_name: "John".to_string(),
+                last_name: "Doe".to_string(),
+            },
+            order_number: "1234".to_string(),
+        };
+
+        let result = order_cancelled(Extension(mailer), Extension(template_manager), Json(payload)).await;
+
+        assert_eq!(result, StatusCode::INTERNAL_SERVER_ERROR);
+    }
+
+    #[tokio::test]
+    async fn test_order_cancelled_mail_send_error() {
+        let mailer = MockMailer {
+            should_fail_create: false,
+            should_fail_send: true,
+        };
+        let mut handlebars = Handlebars::new();
+        handlebars.register_template_string("order_cancelled", "Test template").unwrap();
+        let template_manager = Manager::new(handlebars);
+
+        let payload = CancelledOrderWebhook {
+            customer: Customer {
+                email: "test@test.com".to_string(),
+                first_name: "John".to_string(),
+                last_name: "Doe".to_string(),
+            },
+            order_number: "1234".to_string(),
+        };
+
+        let result = order_cancelled(Extension(mailer), Extension(template_manager), Json(payload)).await;
+
+        assert_eq!(result, StatusCode::INTERNAL_SERVER_ERROR);
+    }
+}

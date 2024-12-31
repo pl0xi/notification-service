@@ -41,3 +41,21 @@ impl Pool {
         self.pool.get().await.map_err(|_| PoolError::FailedToGetClient)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn test_get_client_error() {
+        let pool = Pool::new(
+            "invalid_db".to_string(),
+            "postgres://invalid".to_string(),
+            "invalid_user".to_string(),
+            "invalid_pass".to_string(),
+        );
+
+        let result = pool.get_client().await;
+        assert!(matches!(result, Err(PoolError::FailedToGetClient)));
+    }
+}

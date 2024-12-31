@@ -52,3 +52,54 @@ impl Manager {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use handlebars::Handlebars;
+    use serde_json::json;
+
+    #[test]
+    fn test_manager_new() {
+        let handlebars = Handlebars::new();
+        let manager = Manager::new(handlebars);
+        assert!(manager.templates.get_template("non_existent").is_none());
+    }
+
+    #[test]
+    fn test_get_template_filled_success() {
+        let mut handlebars = Handlebars::new();
+        handlebars.register_template_string("test_template", "Hello {{name}}!").unwrap();
+        let manager = Manager::new(handlebars);
+
+        let result = manager.get_template_filled("test_template", json!({"name": "World"}));
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), "Hello World!");
+    }
+
+    #[test]
+    fn test_get_template_filled_error() {
+        let handlebars = Handlebars::new(); // No templates registered
+        let manager = Manager::new(handlebars);
+
+        let result = manager.get_template_filled("non_existent", json!({"name": "World"}));
+        assert!(matches!(result, Err(ManagerError::FailedToGetTemplate)));
+    }
+
+    #[test]
+    fn test_upsert_template_success() {
+        let mut manager = Manager::new(Handlebars::new());
+        let result = manager.upsert_template("test_template", "Hello {{name}}!");
+
+        assert!(result.is_ok());
+        assert!(manager.templates.has_template("test_template"));
+    }
+
+    #[test]
+    fn test_upsert_template_error() {
+        let mut manager = Manager::new(Handlebars::new());
+        let result = manager.upsert_template("test_template", "{{#invalid}}");
+
+        assert!(matches!(result, Err(ManagerError::TemplateRegistrationError)));
+    }
+}

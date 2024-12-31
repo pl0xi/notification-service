@@ -256,4 +256,51 @@ mod tests {
 
         assert_eq!(response.status(), StatusCode::OK);
     }
+
+    #[tokio::test]
+    async fn test_duplicate_event_id() {
+        let app = setup_app().await.unwrap();
+        let json_body = serde_json::json!({
+            "order_number": "1234567890",
+            "customer": {
+                "email": "test@test.com",
+                "first_name": "John",
+                "last_name": "Doe"
+            }
+        });
+
+        let request_1 = Request::builder()
+            .method("POST")
+            .header("X-Shopify-Topic", "orders/create")
+            .header("X-Shopify-Webhook-Id", "1234567890")
+            .header("X-Shopify-Event-Id", "888888888")
+            .header("X-Shopify-Shop-Domain", SHOPIFY_SHOP_URL.to_string())
+            .header("X-Shopify-Hmac-Sha256", SHOPIFY_WEBHOOK_SECRET.to_string())
+            .header("X-Shopify-Api-Version", SHOPIFY_API_VERSION.to_string())
+            .header("Content-Type", "application/json")
+            .uri("/api/order/create")
+            .body(Body::from(json_body.to_string()))
+            .unwrap();
+
+        let response = app.clone().oneshot(request_1).await.unwrap();
+        assert_eq!(response.status(), StatusCode::OK);
+
+        let request_2 = Request::builder()
+            .method("POST")
+            .header("X-Shopify-Topic", "orders/create")
+            .header("X-Shopify-Webhook-Id", "1234567890")
+            .header("X-Shopify-Event-Id", "888888888")
+            .header("X-Shopify-Shop-Domain", SHOPIFY_SHOP_URL.to_string())
+            .header("X-Shopify-Hmac-Sha256", SHOPIFY_WEBHOOK_SECRET.to_string())
+            .header("X-Shopify-Api-Version", SHOPIFY_API_VERSION.to_string())
+            .header("Content-Type", "application/json")
+            .uri("/api/order/create")
+            .body(Body::from(json_body.to_string()))
+            .unwrap();
+
+        let response = app.clone().oneshot(request_2).await.unwrap();
+
+        // Duplicates return OK, to prevent Shopify retrying the request
+        assert_eq!(response.status(), StatusCode::OK);
+    }
 }

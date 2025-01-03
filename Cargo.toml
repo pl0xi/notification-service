@@ -32,9 +32,16 @@ lazy_static = "1.5.0"
 criterion = "0.5.1"
 testcontainers-modules = { version = "0.11.4", features = ["postgres"] }
 reqwest = { version = "0.12.9", features = ["json"] }
+rustc-hash = "2.1.0"
+fnv = "1.0.7"
+ahash = "0.8.11"
 
 [[bench]]
 name = "benchmark_test"
+harness = false
+
+[[bench]]
+name = "hashmap_benchmark"
 harness = false
 
 [profile.e2e]

@@ -74,7 +74,6 @@ impl MailerTrait for Mailer {
         #[cfg(not(debug_assertions))]
         let mailer: AsyncSmtpTransport<Tokio1Executor> = AsyncSmtpTransport::<Tokio1Executor>::relay(smtp_host)
             .unwrap()
-            .port(smtp_port)
             .credentials(credentials)
             .timeout(Some(Duration::from_secs(10)))
             .build();
